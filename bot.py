@@ -14,7 +14,8 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-THREAD_ID = 1482035625057190038
+# THREAD_ID = 1482035625057190038
+THREAD_ID = 1493740557195939960
 STATE_FILE = "counting_state.json"
 TEMP_FILE = "counting_state.tmp"
 
@@ -23,15 +24,27 @@ last_user_ids = []  # stores last two valid users
 
 @bot.event
 async def on_ready():
+    global current_number, last_user_ids
+
     print(f"Logged in as {bot.user}")
-    current_number, last_user_ids = load_state()
+
     thread = await bot.fetch_channel(THREAD_ID)
+
+    current_number, last_user_ids = load_state()
+
     start = f"The bot is up! The count is at **{current_number}**."
+
     if len(last_user_ids) == 1:
-        start += f" Counter <@{last_user_ids[0]}> counted last!"
+        user = await bot.fetch_user(last_user_ids[0])
+        start += f" Counter @{user.name} counted last!"
+
     if len(last_user_ids) == 2:
-        start += f" Counters <@{last_user_ids[0]}> and <@{last_user_ids[1]}> counted last!"
-    start += " Good luck!"
+        user1 = await bot.fetch_user(last_user_ids[0])
+        user2 = await bot.fetch_user(last_user_ids[1])
+        start += f" Counters @{user1.name} and @{user2.name} counted last!"
+
+    start += " Good luck, have fun!"
+
     await thread.send(start)
 
 @bot.event
