@@ -15,7 +15,7 @@ intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # THREAD_ID = 1482035625057190038
-THREAD_ID = 1493740557195939960
+THREAD_ID = 1493769357619101706
 STATE_FILE = "counting_state.json"
 TEMP_FILE = "counting_state.tmp"
 
