@@ -14,8 +14,7 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# THREAD_ID = 1482035625057190038
-THREAD_ID = 1493769357619101706
+THREAD_ID = 1482035625057190038
 STATE_FILE = "counting_state.json"
 TEMP_FILE = "counting_state.tmp"
 
@@ -57,6 +56,11 @@ async def on_message(message):
     # Ignore bot messages
     if message.author.bot:
         return
+    
+    await bot.process_commands(message)
+
+    if message.content.startswith(bot.command_prefix):
+        return
 
     content = message.content.strip()
 
@@ -97,6 +101,19 @@ async def on_message(message):
     await message.add_reaction("✅")
 
     await bot.process_commands(message)
+
+@bot.command()
+async def count(ctx):
+    string = f"The current count is **{current_number}**."
+    if len(last_user_ids) == 1:
+        user = await bot.fetch_user(last_user_ids[0])
+        string += f" Counter @{user.name} counted last."
+
+    if len(last_user_ids) == 2:
+        user1 = await bot.fetch_user(last_user_ids[0])
+        user2 = await bot.fetch_user(last_user_ids[1])
+        string += f" Counters @{user1.name} and @{user2.name} counted last."
+    await ctx.send(string)
 
 def load_state():
     if not os.path.exists(STATE_FILE):
