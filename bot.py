@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+import asyncio
 import discord
 
 import json
@@ -20,6 +21,8 @@ TEMP_FILE = "counting_state.tmp"
 
 current_number = 0
 last_user_ids = []  # stores last two valid users
+
+reaction_queue = asyncio.Queue()
 
 @bot.event
 async def on_ready():
@@ -44,6 +47,7 @@ async def on_ready():
 
     start += " Good luck, have fun!"
 
+    bot.loop.create_task(reaction_worker())
     await thread.send(start)
 
 @bot.event
@@ -72,21 +76,21 @@ async def on_message(message):
     try:
         num = int(content)
     except ValueError:
-        await message.add_reaction("❓")
+        await reaction_queue.put((message, "❓", 0))
         return
 
     # Check user rules
     if len(last_user_ids) >= 1 and message.author.id == last_user_ids[-1]:
-        await message.add_reaction("⏳")
+        await reaction_queue.put((message, "⏳", 0))
         return
 
     if len(last_user_ids) >= 2 and message.author.id == last_user_ids[-2]:
-        await message.add_reaction("⏳")
+        await reaction_queue.put((message, "⏳", 0))
         return
 
     # Check if number is valid (+1 or -1)
     if num != current_number + 1 and num != current_number - 1:
-        await message.add_reaction("❌")
+        await reaction_queue.put((message, "❌", 0))
         return
 
     # If all checks pass
@@ -122,6 +126,26 @@ def load_state():
     with open(STATE_FILE, "r") as f:
         data = json.load(f)
         return data["current_number"], data["last_user_ids"]
+
+async def reaction_worker():
+    while True:
+        message, emoji, retries = await reaction_queue.get()
+
+        try:
+            await message.add_reaction(emoji)
+
+        except Exception as e:
+            # Decide whether to retry
+            if retries < 3:
+                # retry later
+                await asyncio.sleep(1)
+                await reaction_queue.put((message, emoji, retries + 1))
+            else:
+                print(f"Giving up reaction: {e}")
+
+        await asyncio.sleep(0.3)  # throttle (VERY IMPORTANT)
+
+        reaction_queue.task_done()
 
 def save_state():
     data = {
